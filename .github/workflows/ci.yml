@@ -22,10 +22,12 @@ env:
   AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
   TF_VAR_cloud_id: ${{ secrets.TF_VAR_cloud_id }}
   TF_VAR_folder_id: ${{ secrets.TF_VAR_folder_id }}
-  TF_VAR_vms_ssh_public_root_key: ${{ secrets.TF_VAR_vms_ssh_public_root_key }}
   YC_SA_KEY_JSON: ${{ secrets.YC_SA_KEY_JSON }}
 
 jobs:
+  # ============================================
+  # JOB 1: Lint & Plan — запускается автоматически
+  # ============================================
   lint_plan:
     name: 'Lint & Plan'
     runs-on: ubuntu-latest
@@ -87,6 +89,9 @@ jobs:
             checkov.txt
           retention-days: 7
 
+  # ============================================
+  # JOB 2: Apply — только вручную, с подтверждением
+  # ============================================
   apply:
     name: 'Terraform Apply'
     runs-on: ubuntu-latest
@@ -122,6 +127,9 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -input=false -auto-approve
 
+  # ============================================
+  # JOB 3: Destroy — только вручную, с подтверждением
+  # ============================================
   destroy:
     name: 'Terraform Destroy'
     runs-on: ubuntu-latest
