@@ -4,7 +4,7 @@ terraform {
       source = "yandex-cloud/yandex"
     }
   }
-  required_version = ">1.12.0"
+  required_version = "~>1.12.0"
   backend "s3" {
     bucket  = "netology-bucket-urd6b0ph"
     key     = "terraform.tfstate"
