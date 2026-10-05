@@ -1,0 +1,76 @@
+# .gitlab-ci.yml
+stages:
+  - lint_plan
+  - apply
+  - destroy
+
+default:
+  image: alpine:3.19
+  before_script:
+    - apk add --no-cache curl bash python3 py3-pip git unzip jq
+    
+    # Terraform с зеркала Yandex Cloud
+    - curl -sSL https://hashicorp-releases.yandexcloud.net/terraform/1.12.0/terraform_1.12.0_linux_amd64.zip -o /tmp/tf.zip
+    - unzip -o /tmp/tf.zip -d /usr/local/bin/
+    - chmod +x /usr/local/bin/terraform
+    
+    # Yandex Cloud CLI
+    - curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /usr/local -n
+    - export PATH="/usr/local/bin:$PATH"
+    
+    # tflint
+    - curl -sSL https://github.com/terraform-linters/tflint/releases/latest/download/tflint_linux_amd64.zip -o /tmp/tflint.zip
+    - unzip -o /tmp/tflint.zip -d /usr/local/bin/
+    - chmod +x /usr/local/bin/tflint
+    
+    # checkov
+    - pip install checkov --quiet --break-system-packages
+    
+    # Авторизация в YC через File-переменную GitLab
+    # YC_SA_KEY_FILE — это GitLab-переменная типа "File". В ней хранится путь к временному файлу с JSON-ключом.
+    - yc config profile create ci
+    - yc config set service-account-key "$YC_SA_KEY_FILE"
+    - yc config set cloud-id "$YC_CLOUD_ID"
+    - yc config set folder-id "$YC_FOLDER_ID"
+    - yc config activate-profile ci
+    
+    # Инициализация Terraform
+    - terraform init
+
+lint_plan:
+  stage: lint_plan
+  script:
+    - tflint --recursive > tflint.txt 2>&1 || true
+    - checkov -d . > checkov.txt 2>&1 || true
+    - cloud_access_token=$(yc iam create-token)
+    - terraform plan -input=false -var="cloud_access_token=${cloud_access_token}" -out=outfile
+  artifacts:
+    when: always
+    paths:
+      - outfile
+      - tflint.txt
+      - checkov.txt
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+apply:
+  stage: apply
+  script:
+    - cloud_access_token=$(yc iam create-token)
+    - terraform apply -input=false -auto-approve -var="cloud_access_token=${cloud_access_token}" "outfile"
+  dependencies:
+    - lint_plan
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+destroy:
+  stage: destroy
+  script:
+    - cloud_access_token=$(yc iam create-token)
+    - terraform destroy -input=false -auto-approve -var="cloud_access_token=${cloud_access_token}"
+  when: manual
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
