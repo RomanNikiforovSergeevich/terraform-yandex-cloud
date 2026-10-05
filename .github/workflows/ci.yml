@@ -26,10 +26,6 @@ env:
   YC_SA_KEY_JSON: ${{ secrets.YC_SA_KEY_JSON }}
 
 jobs:
-  # ============================================
-  # JOB 1: Lint и Plan
-  # Запускается автоматически на push/PR
-  # ============================================
   lint_plan:
     name: 'Lint & Plan'
     runs-on: ubuntu-latest
@@ -53,8 +49,8 @@ jobs:
 
       - name: Install YC CLI
         run: |
-          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /usr/local -n
-          echo "/usr/local/bin" >> $GITHUB_PATH
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i "$HOME/yandex-cloud" -n
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
 
       - name: Configure YC CLI
         run: |
@@ -93,11 +89,6 @@ jobs:
             checkov.txt
           retention-days: 7
 
-  # ============================================
-  # JOB 2: Apply
-  # Запускается только вручную (workflow_dispatch с action=apply)
-  # и только после подтверждения в environment
-  # ============================================
   apply:
     name: 'Terraform Apply'
     runs-on: ubuntu-latest
@@ -115,8 +106,8 @@ jobs:
 
       - name: Install YC CLI
         run: |
-          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /usr/local -n
-          echo "/usr/local/bin" >> $GITHUB_PATH
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i "$HOME/yandex-cloud" -n
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
 
       - name: Configure YC CLI
         run: |
@@ -135,10 +126,6 @@ jobs:
           cloud_access_token=$(yc iam create-token)
           terraform apply -input=false -auto-approve -var="cloud_access_token=${cloud_access_token}"
 
-  # ============================================
-  # JOB 3: Destroy
-  # Запускается только вручную (workflow_dispatch с action=destroy)
-  # ============================================
   destroy:
     name: 'Terraform Destroy'
     runs-on: ubuntu-latest
@@ -156,8 +143,8 @@ jobs:
 
       - name: Install YC CLI
         run: |
-          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i /usr/local -n
-          echo "/usr/local/bin" >> $GITHUB_PATH
+          curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash -s -- -i "$HOME/yandex-cloud" -n
+          echo "$HOME/yandex-cloud/bin" >> $GITHUB_PATH
 
       - name: Configure YC CLI
         run: |
