@@ -1,9 +1,4 @@
-###cloud vars
-variable "token" {
-  type        = string
-  description = "OAuth-token; https://cloud.yandex.ru/docs/iam/concepts/authorization/oauth-token"
-}
-
+### Cloud vars
 variable "cloud_id" {
   type        = string
   description = "https://cloud.yandex.ru/docs/resource-manager/operations/cloud/get-id"
@@ -16,41 +11,74 @@ variable "folder_id" {
 
 variable "default_zone" {
   type        = string
+  description = "Зона доступности по умолчанию"
   default     = "ru-central1-a"
-  description = "https://cloud.yandex.ru/docs/overview/concepts/geo-scope"
 }
+
 variable "default_cidr" {
   type        = list(string)
+  description = "CIDR-блоки подсети"
   default     = ["10.0.1.0/24"]
-  description = "https://cloud.yandex.ru/docs/vpc/operations/subnet-create"
 }
 
 variable "vpc_name" {
   type        = string
+  description = "Имя VPC сети и подсети"
   default     = "develop"
-  description = "VPC network&subnet name"
 }
 
-###common vars
-
-variable "vms_ssh_root_key" {
+### Задание 4: валидация IP-адресов
+variable "ip_address" {
   type        = string
-  description = "ssh-keygen -t ed25519"
+  description = "ip-адрес"
+  default     = "192.168.0.1"
+
+  validation {
+    condition     = can(cidrhost("${var.ip_address}/32", 0))
+    error_message = "Значение переменной ip_address должно быть корректным IPv4-адресом."
+  }
 }
 
-###example vm_web var
-variable "vm_web_name" {
+variable "ip_list" {
+  type        = list(string)
+  description = "список ip-адресов"
+  default     = ["192.168.0.1", "1.1.1.1", "127.0.0.1"]
+
+  validation {
+    condition = alltrue([
+      for ip in var.ip_list : can(cidrhost("${ip}/32", 0))
+    ])
+    error_message = "Все элементы списка ip_list должны быть корректными IPv4-адресами."
+  }
+}
+
+### Задание 5*: валидация строки
+variable "any_string" {
   type        = string
-  default     = "netology-develop-platform-web"
-  description = "example vm_web_ prefix"
+  description = "любая строка"
+  default     = "hello world"
+
+  validation {
+    condition     = var.any_string == lower(var.any_string)
+    error_message = "Строка не должна содержать символов верхнего регистра."
+  }
 }
 
-###example vm_db var
-variable "vm_db_name" {
-  type        = string
-  default     = "netology-develop-platform-db"
-  description = "example vm_db_ prefix"
+### Задание 5*: валидация объекта
+variable "in_the_end_there_can_be_only_one" {
+  description = "Who is better Connor or Duncan?"
+  type = object({
+    Dunkan = optional(bool)
+    Connor = optional(bool)
+  })
+
+  default = {
+    Dunkan = true
+    Connor = false
+  }
+
+  validation {
+    error_message = "There can be only one MacLeod"
+    condition     = var.in_the_end_there_can_be_only_one.Dunkan != var.in_the_end_there_can_be_only_one.Connor
+  }
 }
-
-
-
